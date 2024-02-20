@@ -1,0 +1,13 @@
+expression = term | expresson "+" term | expression "-" term ;
+term = factor | term "*" factor | term "/" factor ;
+factor = number | identifier | "(" expression ")" | function_call ;
+function_call = indentifier "(" [argument_list] ")" ;
+argument_list = expression { "," expression } ;
+statement = assignment | expression ;
+assignment = identifier "=" expression ";" ;
+indentifier = letter { letter | digit } ;
+number = digit { digit } [ "." digit { digit } ] ; //complex numbers
+letter = "a-z" | "A-Z" | "greek_alphabet"
+digit = Hindu-Arabic-Numbers (0-9) |; // roman numbers
+
+//Built-in Commands are start by a capital letter all ways.
