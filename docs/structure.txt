@@ -1,0 +1,6 @@
+token.h : Contains macros for tokens, ex: NAME 1
+lexer.h : Is the header file of lexer.c and contains the following:
+            lexer Structure
+            read from input or file and convert it to a lexer structure
+            tokenization functions
+            also contains the strcuture/or a way to represent the token and its details

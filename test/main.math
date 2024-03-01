@@ -1,0 +1,9 @@
+f(x) := 2x^2 + 4x -9 = 0
+g(x) := f(x).left
+h(x) := g(x)^2
+y = x^2 + 4x*sin(5x)
+l: 3x + 6y -9 = 0 //standard equation for a straight line and a label for it as "l"
+
+2.0 + 5*(59-9)/5 + 8
+
+
