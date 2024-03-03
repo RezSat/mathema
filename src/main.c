@@ -4,7 +4,7 @@
 
 int main(void)
 {
-    const char *input_string = "1.";
+    const char *input_string = "gfeg+ehfoh";
     Lexer *lexer = init_lexer(input_string);
 
     Token token;

@@ -1,0 +1,7 @@
+at the end of running the make.sh file inside src:
+    free(): invalid pointer
+
+at the end of running the make.sh file inside src sometimes:
+     munmap_chunck() : invalid pointer
+
+Yes I should create a real Makefile I Know but for now at least until I finish the tokenization properly I won't bother with that.
