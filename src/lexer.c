@@ -5,6 +5,48 @@
 
 #include "include/lexer.h"
 
+// this should be match to the defines in include/token.h
+char *tokenNames[] = {
+    "NONE",
+    "NAME",
+    "NUMBER",
+    "STRING",
+    "ID",
+    "PLUS",
+    "PLUSEQUAL",
+    "MINUS",
+    "MINUSEQUAL",
+    "STAR",
+    "STAREQUAL",
+    "GREATER",
+    "LESS",
+    "CARET",
+    "VBAR",
+    "PERCENT",
+    "FSLASH",
+    "FSLASHEQUAL",
+    "BSLASH",
+    "LPAREN",
+    "RPAREN",
+    "LBRACKET",
+    "RBRACKET",
+    "LBRACE",
+    "RBRACE",
+    "EQUAL",
+    "EQUALEQUAL",
+    "COMMA",
+    "COLON",
+    "COLONEQUAL",
+    "DOT",
+    "SEMI",
+    "UNDERSCORE",
+    "HASH",
+    "EXCLAMATION",
+    "AMPERSAND",
+    "ENDMARKER",
+    "ERRORTOKEN"
+};
+
 Lexer* init_lexer(const char  *text)
 {
     Lexer *lexer = malloc(sizeof(Lexer));
@@ -89,6 +131,11 @@ Token get_number(Lexer *lexer)
             advance(lexer, 1);
         }
     }
+    else if (peek(lexer, 0) == '.' && !isdigit(peek(lexer, 1)))
+    {
+        advance(lexer, 1);
+        return (Token){ERRORTOKEN, NULL}; // Error Handling should be done
+    }
     
 
     int end_pos = lexer->current_pos;
@@ -112,9 +159,9 @@ Token get_number(Lexer *lexer)
 }
 
 Token get_string(Lexer *lexer) {
-    //this should for now only handle strings inside "" (double quotes)
+    advance(lexer, 1);
     int start_pos = lexer->current_pos;
-    while (peek(lexer,0) != '"' && peek(lexer, 0) != '\0')
+    while (peek(lexer,0) != '"' && peek(lexer,0) != '\''  && peek(lexer, 0) != '\0')
     {
         advance(lexer, 1);
     }
@@ -143,68 +190,177 @@ Token get_identifer(Lexer *lexer)
     return (Token) {ID, value};
 }
 
-Token get_next_token(Lexer * lexer) 
+Token get_Onechar(Lexer* lexer)
 {
+    
+    switch (peek(lexer, 0))
+    {
+    case '(':
+        advance(lexer,1);
+        return (Token) {LPAREN, strdup("(")};
+    case ')':
+        advance(lexer,1);
+        return (Token) {RPAREN, strdup(")")};
+    case '[':
+        advance(lexer,1);
+        return (Token) {LBRACKET, strdup("[")};
+    case ']':
+        advance(lexer,1);
+        return (Token) {RBRACKET, strdup("]")};
+    case '{':
+        advance(lexer,1);
+        return (Token) {LBRACE, strdup("{")};
+    case '}':
+        advance(lexer,1);
+        return (Token) {RBRACE, strdup("}")};
+    case ',':
+        advance(lexer,1);
+        return (Token) {COMMA, strdup(",")};
+    case ';':
+        advance(lexer,1);
+        return (Token) {SEMI, strdup(";")};
+    case ':':
+        advance(lexer,1);
+        return (Token) {COLON, strdup(":")};
+    case '+':
+        advance(lexer, 1);
+        return (Token) {PLUS, strdup("+")};
+    case '-':
+        advance(lexer, 1);
+        return (Token) {MINUS, strdup("-")};
+    case '*':
+        advance(lexer, 1);
+        return (Token) {STAR, strdup("*")};
+    case '/':
+        advance(lexer, 1);
+        return (Token) {FSLASH, strdup("/")};
+    case '^':
+        advance(lexer, 1);
+        return (Token) {CARET , strdup("^")};
+    case '=':
+        advance(lexer, 1);
+        return (Token) {EQUAL, strdup("=")};
+    default:
+        break;
+    }
+    advance(lexer, 1);
+    return (Token) {NONE, NULL};
+}
+
+Token get_Twochar(Lexer* lexer)
+{
+    switch (peek(lexer, 0))
+    {
+    case '=':
+        switch (peek(lexer, 1))
+        {
+            case '=':
+            advance(lexer, 2);
+            return (Token) {EQUALEQUAL, strdup("==")};
+        }
+        break;
+    case '+':
+        switch (peek(lexer, 1))
+        {
+            case '=':
+            advance(lexer, 2);
+            return (Token) {PLUSEQUAL, strdup("+=")};
+        }
+        break;
+    case '-':
+        switch (peek(lexer, 1))
+        {
+            case '=':
+            advance(lexer, 2);
+            return (Token) {MINUSEQUAL, strdup("-=")};
+        }
+        break;
+    case '*':
+        switch (peek(lexer, 1))
+        {
+            case '=':
+            advance(lexer, 2);
+            return (Token) {STAREQUAL, strdup("*=")};
+        }
+        break;
+    case '/':
+        switch (peek(lexer, 1))
+        {
+            case '=':
+            advance(lexer, 2);
+            return (Token) {FSLASHEQUAL, strdup("/=")};
+        }
+        break;
+    case '^':
+        switch (peek(lexer, 1))
+        {
+            case '=':
+            advance(lexer, 2);
+            return (Token) {CARET, strdup("^=")};
+        }
+        break;
+    case ':':
+        switch (peek(lexer, 1))
+        {
+            case '=':
+            advance(lexer, 2);
+            return (Token) {COLONEQUAL, strdup(":=")};
+        }
+        break;
+    default:
+        break;
+    }
+    return (Token) {NONE, NULL};
+}
+
+Token get_next_token(Lexer * lexer) 
+{   
+    // Skip whitespaces
     skip_whitespace(lexer);
-    if(peek(lexer, 0) == '\0')
+
+    /* Check for End OF File */
+    if( peek(lexer, 0) == '\0')
     {
         return (Token) {ENDMARKER, NULL};
     }
-    if (peek(lexer, 0) == '#' || (peek(lexer, 0) == '#' && peek(lexer, 1) == '#'))
+
+    /* Skip Comment */
+    if ( peek(lexer, 0) == '#' || ( peek(lexer, 0) == '#' &&  peek(lexer, 1) == '#'))
     {
         skip_comment(lexer);
         return get_next_token(lexer);
     }
-
-    switch (peek(lexer, 0))
+     /* Handle Number*/
+    if (isdigit( peek(lexer, 0)) ||  peek(lexer, 0) == '.')
     {
-    case '+':
-        advance(lexer,1);
-        return (Token) {PLUS, NULL};
-    case '-':
-        advance(lexer,1);
-        return (Token) {MINUS, NULL};
-    case '*':
-        advance(lexer,1);
-        return (Token) {STAR, NULL};
-    case '/':
-        advance(lexer,1);
-        return (Token) {FSLASH, NULL};
-    case '(':
-        advance(lexer,1);
-        return (Token) {LPAREN, NULL};
-    case ')':
-        advance(lexer,1);
-        return (Token) {RPAREN, NULL};
-    case ',':
-        advance(lexer,1);
-        return (Token) {COMMA, NULL};
-    case '=':
-        advance(lexer,1);
-        return (Token) {EQUAL, NULL};
-
-    //DOT is a bit tricky case as we have DOT in .1 and func.maethod so I'll deal with it later
-    case '.':
-        //advance(lexer,1);
-        return get_number(lexer);
-
-    default:
-        if (isdigit(peek(lexer, 0)))
-        {
-            return get_number(lexer);
-        } 
-        else if (peek(lexer, 0) == '"')
-        {
-            return get_string(lexer);
-        } 
-        else if (isalpha(peek(lexer, 0)) || peek(lexer,0) == '_')
-        {
-            return get_identifer(lexer);
-        }
-        else
-        {
-            advance(lexer, 1);
-            return (Token){NONE, NULL};
-        }
+       return get_number(lexer);
     }
+
+     /* Handle String*/
+    if (peek(lexer, 0) == '"' || peek(lexer, 0) == '\'')
+    {
+        
+        return get_string(lexer);
+    }
+    
+    if (isalpha( peek(lexer, 0)) ||  peek(lexer, 0) == '_')
+    {
+        return get_identifer(lexer);
+    }
+    
+     /* Check for Two Character Tokens */
+    Token c = get_Twochar(lexer);
+
+    if (c.type == NONE)
+    {
+        /* Check for One Character Tokens */
+        return get_Onechar(lexer);
+    }
+    else
+    {
+        return c;
+    }
+
+
+    
 }

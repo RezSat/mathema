@@ -3,6 +3,7 @@
 
 #include "token.h"
 
+
 typedef struct {
     const char *text;
     int current_pos;
@@ -17,6 +18,9 @@ void reverse(Lexer *lexer, int steps);
 
 void skip_whitespace(Lexer *lexer);
 void skip_comment(Lexer *lexer);
+
+Token get_Onechar(Lexer *lexer);
+Token get_Twochar(Lexer *lexer);
 
 Token get_number(Lexer *lexer);
 Token get_string(Lexer *lexer);
