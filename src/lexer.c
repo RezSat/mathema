@@ -4,6 +4,8 @@
 #include <stdio.h>
 
 #include "include/lexer.h"
+#include "include/helper.h"
+
 
 // this should be match to the defines in include/token.h
 char *tokenNames[] = {
@@ -52,8 +54,26 @@ Lexer* init_lexer(const char  *text)
     Lexer *lexer = malloc(sizeof(Lexer));
     lexer->text = text;
     lexer->current_pos = 0;
+    lexer->line_start = 0;
+    lexer->line_end = 0;
     lexer->current_token.type = NONE;
     lexer->current_token.value = NULL;
+    lexer->current_token.lineno = 1;
+    lexer->current_token.line = NULL;
+    lexer->current_token.start_pos = (Location){lexer->current_token.lineno,lexer->current_pos};
+    lexer->current_token.end_pos = (Location){lexer->current_token.lineno,lexer->current_pos};
+
+    //Find the end position of the first line
+    while (text[lexer->current_pos] != '\n' && text[lexer->current_pos] != '\0')
+    {
+        lexer->line_end++;
+        lexer->current_pos++;
+    }
+    lexer->current_pos = 0;
+    lexer->current_token.line = malloc(lexer->line_end + 1);
+    strncpy(lexer->current_token.line, text, lexer->line_end);
+    lexer->current_token.line[lexer->line_end] = '\0';
+    //printf("%s\n\n",lexer->current_token.line);
     return lexer;
 }
 
@@ -64,11 +84,16 @@ void free_lexer(Lexer *lexer)
     {
         free(lexer -> current_token.value);
     }
+    if (lexer -> current_token.line)
+    {
+        free(lexer -> current_token.line);
+    }
     free(lexer);
 }   
 
 char peek(Lexer *lexer, int offset) 
 {
+    //printf("%s\n\n", lexer->current_token.line);
     return lexer->text[lexer->current_pos + offset];
 }
 
@@ -134,7 +159,7 @@ Token get_number(Lexer *lexer)
     else if (peek(lexer, 0) == '.' && !isdigit(peek(lexer, 1)))
     {
         advance(lexer, 1);
-        return (Token){ERRORTOKEN, NULL}; // Error Handling should be done
+        return (Token){ERRORTOKEN, NULL, lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}}; // Error Handling should be done
     }
     
 
@@ -146,14 +171,14 @@ Token get_number(Lexer *lexer)
         strcpy(value, "0");
         strncpy(value + 1, lexer->text + start_pos, length);
         value[length + 1] = '\0';
-        return (Token) {NUMBER, value};
+        return (Token) {NUMBER, value, lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,end_pos}};
 
     } else 
     {
         char *value = malloc(length +1);
         strncpy(value, lexer->text + start_pos, length);
         value[length] = '\0';
-        return (Token) {NUMBER, value};
+        return (Token) {NUMBER, value, lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,end_pos}};
     }
     
 }
@@ -172,7 +197,7 @@ Token get_string(Lexer *lexer) {
     strncpy (value, lexer->text + start_pos, length);
     value[length] = '\0';
     advance(lexer,1);
-    return (Token) {STRING, value};
+    return (Token) {STRING, value, lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,end_pos}};
 }
 
 Token get_identifer(Lexer *lexer)
@@ -187,68 +212,70 @@ Token get_identifer(Lexer *lexer)
     char *value = malloc (length +1);
     strncpy(value, lexer->text + start_pos, length);
     value[length] = '\0';
-    return (Token) {ID, value};
+    return (Token) {ID, value, lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,end_pos} };
 }
 
 Token get_Onechar(Lexer* lexer)
-{
+{   
+    int start_pos = lexer->current_pos;
     
     switch (peek(lexer, 0))
     {
     case '(':
         advance(lexer,1);
-        return (Token) {LPAREN, strdup("(")};
+        return (Token) {LPAREN, duplicate_string("("), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
     case ')':
         advance(lexer,1);
-        return (Token) {RPAREN, strdup(")")};
+        return (Token) {RPAREN, duplicate_string(")"), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
     case '[':
         advance(lexer,1);
-        return (Token) {LBRACKET, strdup("[")};
+        return (Token) {LBRACKET, duplicate_string("["), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
     case ']':
         advance(lexer,1);
-        return (Token) {RBRACKET, strdup("]")};
+        return (Token) {RBRACKET, duplicate_string("]"), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
     case '{':
         advance(lexer,1);
-        return (Token) {LBRACE, strdup("{")};
+        return (Token) {LBRACE, duplicate_string("{"), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
     case '}':
         advance(lexer,1);
-        return (Token) {RBRACE, strdup("}")};
+        return (Token) {RBRACE, duplicate_string("}"), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
     case ',':
         advance(lexer,1);
-        return (Token) {COMMA, strdup(",")};
+        return (Token) {COMMA, duplicate_string(","), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
     case ';':
         advance(lexer,1);
-        return (Token) {SEMI, strdup(";")};
+        return (Token) {SEMI, duplicate_string(";"), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
     case ':':
         advance(lexer,1);
-        return (Token) {COLON, strdup(":")};
+        return (Token) {COLON, duplicate_string(":"), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
     case '+':
         advance(lexer, 1);
-        return (Token) {PLUS, strdup("+")};
+        return (Token) {PLUS, duplicate_string("+"), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
     case '-':
         advance(lexer, 1);
-        return (Token) {MINUS, strdup("-")};
+        return (Token) {MINUS, duplicate_string("-"), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
     case '*':
         advance(lexer, 1);
-        return (Token) {STAR, strdup("*")};
+        return (Token) {STAR, duplicate_string("*"), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
     case '/':
         advance(lexer, 1);
-        return (Token) {FSLASH, strdup("/")};
+        return (Token) {FSLASH, duplicate_string("/"), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
     case '^':
         advance(lexer, 1);
-        return (Token) {CARET , strdup("^")};
+        return (Token) {CARET , duplicate_string("^"), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
     case '=':
         advance(lexer, 1);
-        return (Token) {EQUAL, strdup("=")};
+        return (Token) {EQUAL, duplicate_string("="), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
     default:
         break;
     }
     advance(lexer, 1);
-    return (Token) {NONE, NULL};
+    return (Token) {NONE, NULL, lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
 }
 
 Token get_Twochar(Lexer* lexer)
 {
+    int start_pos = lexer->current_pos;
     switch (peek(lexer, 0))
     {
     case '=':
@@ -256,7 +283,7 @@ Token get_Twochar(Lexer* lexer)
         {
             case '=':
             advance(lexer, 2);
-            return (Token) {EQUALEQUAL, strdup("==")};
+            return (Token) {EQUALEQUAL, duplicate_string("=="), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
         }
         break;
     case '+':
@@ -264,7 +291,7 @@ Token get_Twochar(Lexer* lexer)
         {
             case '=':
             advance(lexer, 2);
-            return (Token) {PLUSEQUAL, strdup("+=")};
+            return (Token) {PLUSEQUAL, duplicate_string("+="), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
         }
         break;
     case '-':
@@ -272,7 +299,7 @@ Token get_Twochar(Lexer* lexer)
         {
             case '=':
             advance(lexer, 2);
-            return (Token) {MINUSEQUAL, strdup("-=")};
+            return (Token) {MINUSEQUAL, duplicate_string("-="), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
         }
         break;
     case '*':
@@ -280,7 +307,7 @@ Token get_Twochar(Lexer* lexer)
         {
             case '=':
             advance(lexer, 2);
-            return (Token) {STAREQUAL, strdup("*=")};
+            return (Token) {STAREQUAL, duplicate_string("*="), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
         }
         break;
     case '/':
@@ -288,7 +315,7 @@ Token get_Twochar(Lexer* lexer)
         {
             case '=':
             advance(lexer, 2);
-            return (Token) {FSLASHEQUAL, strdup("/=")};
+            return (Token) {FSLASHEQUAL, duplicate_string("/="), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
         }
         break;
     case '^':
@@ -296,7 +323,7 @@ Token get_Twochar(Lexer* lexer)
         {
             case '=':
             advance(lexer, 2);
-            return (Token) {CARET, strdup("^=")};
+            return (Token) {CARET, duplicate_string("^="), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
         }
         break;
     case ':':
@@ -304,24 +331,43 @@ Token get_Twochar(Lexer* lexer)
         {
             case '=':
             advance(lexer, 2);
-            return (Token) {COLONEQUAL, strdup(":=")};
+            return (Token) {COLONEQUAL, duplicate_string(":="), lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
         }
         break;
     default:
         break;
     }
-    return (Token) {NONE, NULL};
+    return (Token) {NONE, NULL, lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, start_pos}, {lexer->current_token.lineno,lexer->current_pos}};
 }
 
 Token get_next_token(Lexer * lexer) 
 {   
+
+    if (peek(lexer, 0) == '\n')
+    {
+        lexer->current_token.lineno++;
+        lexer->line_start = lexer->current_pos;
+        free(lexer->current_token.line);
+        while (lexer->text[lexer->line_start] != '\n' && lexer->text[lexer->line_start] != '\0')
+        {
+            lexer->line_end++;
+            lexer->current_pos++;
+        }
+        lexer->current_pos = lexer->line_start;
+        lexer->current_token.line = malloc(lexer->line_end - lexer->line_start + 1);
+        strncpy(lexer->current_token.line, lexer->text, ((lexer->line_end - lexer->line_start)));
+        lexer->current_token.line[lexer->line_end - lexer->line_start] = '\0';
+    
+    }
+
     // Skip whitespaces
     skip_whitespace(lexer);
 
     /* Check for End OF File */
     if( peek(lexer, 0) == '\0')
     {
-        return (Token) {ENDMARKER, NULL};
+        lexer->current_token.lineno++;
+        return (Token) {ENDMARKER, NULL, lexer->current_token.lineno, lexer->current_token.line, {lexer->current_token.lineno, 0}, {lexer->current_token.lineno,0}};
     }
 
     /* Skip Comment */
@@ -330,35 +376,47 @@ Token get_next_token(Lexer * lexer)
         skip_comment(lexer);
         return get_next_token(lexer);
     }
+
+
      /* Handle Number*/
     if (isdigit( peek(lexer, 0)) ||  peek(lexer, 0) == '.')
     {
-       return get_number(lexer);
+        Token number = get_number(lexer);
+        number.line = lexer->current_token.line;  // Set line information for the number token
+        return number;
     }
 
      /* Handle String*/
     if (peek(lexer, 0) == '"' || peek(lexer, 0) == '\'')
     {
         
-        return get_string(lexer);
+        Token string = get_string(lexer);
+        string.line = lexer->current_token.line;  // Set line information for the string token
+        return string;
     }
     
     if (isalpha( peek(lexer, 0)) ||  peek(lexer, 0) == '_')
     {
-        return get_identifer(lexer);
+        Token identifier = get_identifer(lexer);
+        identifier.line = lexer->current_token.line;  // Set line information for the identifier token
+        return identifier;
     }
     
      /* Check for Two Character Tokens */
-    Token c = get_Twochar(lexer);
+    Token twoChar = get_Twochar(lexer);
+    
 
-    if (c.type == NONE)
+    if (twoChar.type == NONE)
     {
         /* Check for One Character Tokens */
-        return get_Onechar(lexer);
+        Token oneChar = get_Onechar(lexer);
+        oneChar.line = lexer->current_token.line;  // Set line information for the one character token
+        return oneChar;
     }
     else
     {
-        return c;
+        twoChar.line = lexer->current_token.line;
+        return twoChar;
     }
 
 

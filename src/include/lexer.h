@@ -7,6 +7,8 @@
 typedef struct {
     const char *text;
     int current_pos;
+    int line_start;
+    int line_end;
     Token  current_token;
 } Lexer;
 

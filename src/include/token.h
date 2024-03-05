@@ -40,11 +40,21 @@
 #define ENDMARKER   36
 #define ERRORTOKEN  37
 
-//changes to here need to be applied into lexer.c (tokenNames[]) as well.
+//changes to the above need to be applied into lexer.c (tokenNames[]) as well.
+
+typedef struct {
+    int lineno;
+    int position;
+
+} Location;
 
 typedef struct {
     int type;
     char *value;
+    int lineno;
+    char *line;
+    Location start_pos;
+    Location end_pos;
     //add type name, linemo, line, etc.
 } Token;
 
